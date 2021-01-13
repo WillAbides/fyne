@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"fyne.io/fyne"
+	"github.com/klauspost/compress/zstd"
 )
 
 const fontFace = "NotoSans"
@@ -26,17 +27,27 @@ func formatVariable(name string) string {
 	return strings.Replace(str, "_", "", -1)
 }
 
-func bundleFile(name string, filepath string, f io.Writer) {
+func openFile(filepath string) (*fyne.StaticResource, error) {
 	res, err := fyne.LoadResourceFromPath(filepath)
 	if err != nil {
 		fyne.LogError("Unable to load file "+filepath, err)
-		return
+		return nil, err
 	}
 	staticRes, ok := res.(*fyne.StaticResource)
 	if !ok {
 		fyne.LogError("Unable to format resource", fmt.Errorf("unexpected resource type %T", res))
+		return nil, err
+	}
+
+	return staticRes, nil
+}
+
+func bundleFile(name string, filepath string, f io.Writer) {
+	staticRes, err := openFile(filepath)
+	if err != nil {
 		return
 	}
+
 	v := fmt.Sprintf("var %s = &fyne.StaticResource{\n\tStaticName: %q,\n\tStaticContent: []byte(%q),\n}\n\n",
 		formatVariable(name), staticRes.StaticName, staticRes.StaticContent)
 	_, err = f.Write([]byte(v))
@@ -53,7 +64,20 @@ func bundleFont(font, name string, f io.Writer) {
 		name = "Monospace"
 	}
 
-	bundleFile(strings.ToLower(name), path, f)
+	staticRes, err := openFile(path)
+	if err != nil {
+		return
+	}
+
+	encoder, _ := zstd.NewWriter(nil)
+	compressed := encoder.EncodeAll(staticRes.StaticContent, make([]byte, 0, len(staticRes.StaticContent)))
+
+	v := fmt.Sprintf("var %s = &fyne.StaticResource{\n\tStaticName: %q,\n\tStaticContent: []byte(%q),\n}\n\n",
+		formatVariable(strings.ToLower(name)), staticRes.StaticName, compressed)
+	_, err = f.Write([]byte(v))
+	if err != nil {
+		fyne.LogError("Unable to write to bundled file", err)
+	}
 }
 
 func iconDir() string {

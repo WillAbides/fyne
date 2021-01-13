@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"fyne.io/fyne"
+	"github.com/klauspost/compress/zstd"
 )
 
 const (
@@ -239,12 +240,18 @@ func DarkTheme() fyne.Theme {
 	return theme
 }
 
+func decodeCompressedFont(font *fyne.StaticResource) *fyne.StaticResource {
+	decoder, _ := zstd.NewReader(nil)
+	font.StaticContent, _ = decoder.DecodeAll(font.StaticContent, make([]byte, 0, len(font.StaticContent)))
+	return font
+}
+
 func (t *builtinTheme) initFonts() {
-	t.regular = regular
-	t.bold = bold
-	t.italic = italic
-	t.boldItalic = bolditalic
-	t.monospace = monospace
+	t.regular = decodeCompressedFont(regular)
+	t.bold = decodeCompressedFont(bold)
+	t.italic = decodeCompressedFont(italic)
+	t.boldItalic = decodeCompressedFont(bolditalic)
+	t.monospace = decodeCompressedFont(monospace)
 
 	font := os.Getenv("FYNE_FONT")
 	if font != "" {
