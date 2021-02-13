@@ -3,3 +3,5 @@ Type=Application
 Name={{.Name}}
 Exec={{.Exec}}
 Icon={{.Name}}
+Categories={{.Categories}}
+Keywords=fyne;

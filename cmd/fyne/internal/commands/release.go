@@ -105,7 +105,7 @@ func Release() *cli.Command {
 			},
 			&cli.StringFlag{
 				Name:        "category",
-				Usage:       "macOS: category of the app for store listing",
+				Usage:       "macOS: category of the app for store listing\nLinux: a list of categories spearated with semicolons",
 				Destination: &r.category,
 			},
 			&cli.StringFlag{

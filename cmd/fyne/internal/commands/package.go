@@ -81,6 +81,11 @@ func Package() *cli.Command {
 				Usage:       "For Android, darwin, iOS and Windows targets an appID in the form of a reversed domain name is required, for ios this must match a valid provisioning profile",
 				Destination: &p.appID,
 			},
+			&cli.StringFlag{
+				Name:        "category",
+				Usage:       "Linux: a list of categories spearated with semicolons",
+				Destination: &p.category,
+			},
 			&cli.BoolFlag{
 				Name:        "release",
 				Usage:       "Enable installation in release mode (disable debug etc).",

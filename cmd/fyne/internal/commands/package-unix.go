@@ -4,15 +4,22 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"strings"
 
+	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/cmd/fyne/internal/templates"
 	"fyne.io/fyne/v2/cmd/fyne/internal/util"
 	"github.com/pkg/errors"
 )
 
+// Just check for one or more word characters
+var desktopCategories = regexp.MustCompile(`\w+`)
+
 type unixData struct {
 	Name, Exec, Icon string
 	Local            string
+	Categories       string
 }
 
 func (p *Packager) packageUNIX() error {
@@ -51,7 +58,12 @@ func (p *Packager) packageUNIX() error {
 	desktop := filepath.Join(appsDir, p.name+".desktop")
 	deskFile, _ := os.Create(desktop)
 
-	tplData := unixData{Name: p.name, Exec: filepath.Base(p.exe), Icon: p.name + filepath.Ext(p.icon), Local: local}
+	tplData := unixData{
+		Name: p.name, Exec: filepath.Base(p.exe),
+		Icon: p.name + filepath.Ext(p.icon), Local: local,
+		Categories: p.validateCategories(),
+	}
+
 	err = templates.DesktopFileUNIX.Execute(deskFile, tplData)
 	if err != nil {
 		return errors.Wrap(err, "Failed to write desktop entry string")
@@ -74,4 +86,16 @@ func (p *Packager) packageUNIX() error {
 	}
 
 	return nil
+}
+
+func (p *Packager) validateCategories() string {
+	categories := strings.Split(p.category, ";")
+	for _, cat := range categories {
+		if !desktopCategories.MatchString(cat) {
+			fyne.LogError("The categories are not correctly separated with semicolons", nil)
+			return "Other" // Put to the other category. Same as not having any categories at all.
+		}
+	}
+
+	return p.category
 }
